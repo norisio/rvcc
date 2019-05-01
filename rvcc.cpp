@@ -70,6 +70,22 @@ std::vector<Token> tokenize(char const* p){
       p++;
       continue;
     }
+    if(*p == '('){
+      Token token;
+      token.type = TokenType::BEGIN_PAREN;
+      token.input = p;
+      tokens.push_back(token);
+      p++;
+      continue;
+    }
+    if(*p == ')'){
+      Token token;
+      token.type = TokenType::END_PAREN;
+      token.input = p;
+      tokens.push_back(token);
+      p++;
+      continue;
+    }
 
     if(isdigit(*p)){;
       Token token;
