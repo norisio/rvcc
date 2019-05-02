@@ -20,6 +20,9 @@ enum class TokenType{
   LESS_THAN,
   NOT_EQUAL,
   EQUAL,
+  // IDENTIFIER,
+  SEMICOLON,
+  // ASSIGN,
   EOS
 };
 struct Token{
@@ -42,6 +45,7 @@ enum class ASTNodeType{
   BINARY_LESS_THAN_OR_EQUAL,
   BINARY_EQUAL,
   BINARY_NOT_EQUAL,
+  // BINARY_ASSIGN,
   NUMBER
 };
 struct ASTNode{
@@ -50,7 +54,7 @@ struct ASTNode{
   ASTNode const* rhs;
   int value;
 };
-ASTNode* equality(std::vector<Token>::const_iterator& token_itr);
+std::vector<ASTNode*> program(std::vector<Token>::const_iterator& token_itr);
 
 /* コード生成 */
 void gen(ASTNode const* node);

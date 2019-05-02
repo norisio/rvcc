@@ -75,6 +75,24 @@ std::vector<Token> tokenize(char const* p){
       p++;
       continue;
     }
+    if(*p == ';'){
+      tokens.emplace_back(TokenType::SEMICOLON, p);
+      p++;
+      continue;
+    }
+    /*
+    if(*p == '='){
+      tokens.emplace_back(TokenType::ASSIGN, p);
+      p++;
+      continue;
+    }
+
+    if('a' <= *p && *p <= 'z'){
+      tokens.emplace_back(TokenType::IDENTIFIER, p);
+      p++;
+      continue;
+    }
+    */
 
 
     if(std::isdigit(*p)){;
@@ -118,11 +136,42 @@ bool consume(TokenType type, std::vector<Token>::const_iterator& token_itr){
   ++token_itr;
   return true;
 }
+ASTNode* stmt(std::vector<Token>::const_iterator& token_itr);
+ASTNode* assignment(std::vector<Token>::const_iterator& token_itr);
+ASTNode* equality(std::vector<Token>::const_iterator& token_itr);
 ASTNode* relational(std::vector<Token>::const_iterator& token_itr);
 ASTNode* add(std::vector<Token>::const_iterator& token_itr);
 ASTNode* mul(std::vector<Token>::const_iterator& token_itr);
 ASTNode* term(std::vector<Token>::const_iterator& token_itr);
 ASTNode* unary(std::vector<Token>::const_iterator& token_itr);
+std::vector<ASTNode*> program(std::vector<Token>::const_iterator& token_itr){
+  std::vector<ASTNode*> ret;
+  while(token_itr->type != TokenType::EOS){
+    ret.emplace_back(stmt(token_itr));
+  }
+  return ret;
+}
+ASTNode* stmt(std::vector<Token>::const_iterator& token_itr){
+  ASTNode* node = assignment(token_itr);
+
+  if(!consume(TokenType::SEMICOLON, token_itr)){
+    error("セミコロン ; が無い");
+    exit(1);
+  }
+  return node;
+}
+ASTNode* assignment(std::vector<Token>::const_iterator& token_itr){
+  ASTNode* node = equality(token_itr);
+  for(;;){
+    /*
+    if(consume(TokenType::ASSIGN, token_itr)){
+      node = newNodeBinary(ASTNodeType::BINARY_ASSIGN, node, assignment(token_itr));
+    }else{
+    */
+      return node;
+    //}
+  }
+}
 ASTNode* equality(std::vector<Token>::const_iterator& token_itr){
   ASTNode* node = relational(token_itr);
   for(;;){

@@ -27,7 +27,8 @@ int main(int argc, char** argv){
   auto const tokens = tokenize(argv[1]);
 
   auto token_itr = tokens.cbegin();
-  ASTNode const* const astRoot = equality(token_itr);
+
+  std::vector<ASTNode*> code = program(token_itr);
 
   std::cout <<
     ".global main\n"
@@ -35,7 +36,9 @@ int main(int argc, char** argv){
     "main:\n"
     << std::endl;
 
-  gen(astRoot);
+  for(ASTNode* const& stmtNode: code){
+    gen(stmtNode);
+  }
 
 
   std::cout <<
