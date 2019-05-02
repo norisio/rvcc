@@ -147,6 +147,7 @@ bool consume(TokenType type, std::vector<Token>::const_iterator& token_itr){
 }
 ASTNode* mul(std::vector<Token>::const_iterator& token_itr);
 ASTNode* term(std::vector<Token>::const_iterator& token_itr);
+ASTNode* unary(std::vector<Token>::const_iterator& token_itr);
 ASTNode* add(std::vector<Token>::const_iterator& token_itr){
   ASTNode* node = mul(token_itr);
   for(;;){
@@ -160,15 +161,26 @@ ASTNode* add(std::vector<Token>::const_iterator& token_itr){
   }
 }
 ASTNode* mul(std::vector<Token>::const_iterator& token_itr){
-  ASTNode* node = term(token_itr);
+  ASTNode* node = unary(token_itr);
   for(;;){
     if(consume(TokenType::ASTERISK, token_itr)){
-      node = newNodeBinary(ASTNodeType::BINARY_MUL, node, term(token_itr));
+      node = newNodeBinary(ASTNodeType::BINARY_MUL, node, unary(token_itr));
     }else if(consume(TokenType::SLASH, token_itr)){
-      node = newNodeBinary(ASTNodeType::BINARY_DIV, node, term(token_itr));
+      node = newNodeBinary(ASTNodeType::BINARY_DIV, node, unary(token_itr));
     }else{
       return node;
     }
+  }
+}
+ASTNode* unary(std::vector<Token>::const_iterator& token_itr){
+  if(consume(TokenType::PLUS, token_itr)){
+    return term(token_itr);
+  }else if(consume(TokenType::MINUS, token_itr)){
+    auto const zeroNode = newNodeNumber(0);
+    auto const subtractionNode = newNodeBinary(ASTNodeType::BINARY_SUB, zeroNode, term(token_itr));
+    return subtractionNode;
+  }else{
+    return term(token_itr);
   }
 }
 ASTNode* term(std::vector<Token>::const_iterator& token_itr){
