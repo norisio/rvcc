@@ -1,8 +1,14 @@
 CXXFLAGS= -std=c++14 -Wall -Wextra -g
 LDFLAGS=
+SRCS=$(wildcard *.cpp)
+OBJS=$(SRCS:.cpp=.o)
 
-rvcc: rvcc.o parse.o codegen.o
-	${CXX} ${LDFLAGS} -o $@ $^
+all: rvcc
+
+$(OBJS): rvcc.hpp
+
+rvcc: $(OBJS)
+	$(CXX) $(LDFLAGS) -o $@ $^
 
 test: rvcc
 	./test.sh
