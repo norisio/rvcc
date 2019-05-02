@@ -1,9 +1,10 @@
 #include <cctype>
+#include <cstdarg>
 #include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <string>
 #include <vector>
-#include <cstdarg>
 
 void error(char const* fmt, ...) {
   va_list ap;
@@ -22,87 +23,103 @@ enum class TokenType{
   NUMBER,
   BEGIN_PAREN,
   END_PAREN,
+  GREATER_THAN_OR_EQUAL,
+  LESS_THAN_OR_EQUAL,
+  GREATER_THAN,
+  LESS_THAN,
+  NOT_EQUAL,
+  EQUAL,
   EOS
 };
 struct Token{
   TokenType type;
   int value;
   char const* input;
+  Token(TokenType type, char const* input): type(type), input(input){}
+  Token(TokenType type, int value, char const* input): type(type), value(value), input(input){}
 };
 std::vector<Token> tokenize(char const* p){
   std::vector<Token> tokens;
 
   while(*p){
-    if(isspace(*p)){
+    if(std::isspace(*p)){
       p++;
+      continue;
+    }
+
+    if(std::strncmp(p, ">=", 2) == 0){
+      tokens.emplace_back(TokenType::GREATER_THAN_OR_EQUAL, p);
+      p += 2;
+      continue;
+    }
+    if(std::strncmp(p, "<=", 2) == 0){
+      tokens.emplace_back(TokenType::LESS_THAN_OR_EQUAL, p);
+      p += 2;
+      continue;
+    }
+    if(std::strncmp(p, "!=", 2) == 0){
+      tokens.emplace_back(TokenType::NOT_EQUAL, p);
+      p += 2;
+      continue;
+    }
+    if(std::strncmp(p, "==", 2) == 0){
+      tokens.emplace_back(TokenType::EQUAL, p);
+      p += 2;
       continue;
     }
 
     if(*p == '+'){
-      Token token;
-      token.type = TokenType::PLUS;
-      token.input = p;
-      tokens.push_back(token);
+      tokens.emplace_back(TokenType::PLUS, p);
       p++;
       continue;
     }
     if(*p == '-'){
-      Token token;
-      token.type = TokenType::MINUS;
-      token.input = p;
-      tokens.push_back(token);
+      tokens.emplace_back(TokenType::MINUS, p);
       p++;
       continue;
     }
     if(*p == '*'){
-      Token token;
-      token.type = TokenType::ASTERISK;
-      token.input = p;
-      tokens.push_back(token);
+      tokens.emplace_back(TokenType::ASTERISK, p);
       p++;
       continue;
     }
     if(*p == '/'){
-      Token token;
-      token.type = TokenType::SLASH;
-      token.input = p;
-      tokens.push_back(token);
+      tokens.emplace_back(TokenType::SLASH, p);
       p++;
       continue;
     }
     if(*p == '('){
-      Token token;
-      token.type = TokenType::BEGIN_PAREN;
-      token.input = p;
-      tokens.push_back(token);
+      tokens.emplace_back(TokenType::BEGIN_PAREN, p);
       p++;
       continue;
     }
     if(*p == ')'){
-      Token token;
-      token.type = TokenType::END_PAREN;
-      token.input = p;
-      tokens.push_back(token);
+      tokens.emplace_back(TokenType::END_PAREN, p);
+      p++;
+      continue;
+    }
+    if(*p == '<'){
+      tokens.emplace_back(TokenType::LESS_THAN, p);
+      p++;
+      continue;
+    }
+    if(*p == '>'){
+      tokens.emplace_back(TokenType::GREATER_THAN, p);
       p++;
       continue;
     }
 
-    if(isdigit(*p)){;
-      Token token;
-      token.type = TokenType::NUMBER;
-      token.input = p;
-      token.value = std::strtol(p, (char**)&p, 10);
-      tokens.push_back(token);
+
+    if(std::isdigit(*p)){;
+      auto const p_tmp = p;
+      tokens.emplace_back(TokenType::NUMBER, std::strtol(p, (char**)&p, 10), p_tmp);
       continue;
     }
     error("トークナイズできません: %s", p);
     exit(1);
   }
 
-  Token token;
-  token.type = TokenType::EOS;
-  token.input = p;
-  tokens.push_back(token);
+  tokens.emplace_back(TokenType::EOS, p);
 
   return tokens;
 }
@@ -113,6 +130,10 @@ enum class ASTNodeType{
   BINARY_SUB,
   BINARY_MUL,
   BINARY_DIV,
+  BINARY_LESS_THAN,
+  BINARY_LESS_THAN_OR_EQUAL,
+  BINARY_EQUAL,
+  BINARY_NOT_EQUAL,
   NUMBER
 };
 struct ASTNode{
@@ -145,9 +166,40 @@ bool consume(TokenType type, std::vector<Token>::const_iterator& token_itr){
   ++token_itr;
   return true;
 }
+ASTNode* equality(std::vector<Token>::const_iterator& token_itr);
+ASTNode* relational(std::vector<Token>::const_iterator& token_itr);
+ASTNode* add(std::vector<Token>::const_iterator& token_itr);
 ASTNode* mul(std::vector<Token>::const_iterator& token_itr);
 ASTNode* term(std::vector<Token>::const_iterator& token_itr);
 ASTNode* unary(std::vector<Token>::const_iterator& token_itr);
+ASTNode* equality(std::vector<Token>::const_iterator& token_itr){
+  ASTNode* node = relational(token_itr);
+  for(;;){
+    if(consume(TokenType::EQUAL, token_itr)){
+      node = newNodeBinary(ASTNodeType::BINARY_EQUAL, node, relational(token_itr));
+    }else if(consume(TokenType::NOT_EQUAL, token_itr)){
+      node = newNodeBinary(ASTNodeType::BINARY_NOT_EQUAL, node, relational(token_itr));
+    }else{
+      return node;
+    }
+  }
+}
+ASTNode* relational(std::vector<Token>::const_iterator& token_itr){
+  ASTNode* node = add(token_itr);
+  for(;;){
+    if(consume(TokenType::LESS_THAN_OR_EQUAL, token_itr)){
+      node = newNodeBinary(ASTNodeType::BINARY_LESS_THAN_OR_EQUAL, node, add(token_itr));
+    }else if(consume(TokenType::GREATER_THAN_OR_EQUAL, token_itr)){
+      node = newNodeBinary(ASTNodeType::BINARY_LESS_THAN_OR_EQUAL, add(token_itr), node);  // swapped lhs, rhs
+    }else if(consume(TokenType::LESS_THAN, token_itr)){
+      node = newNodeBinary(ASTNodeType::BINARY_LESS_THAN, node, add(token_itr));
+    }else if(consume(TokenType::GREATER_THAN, token_itr)){
+      node = newNodeBinary(ASTNodeType::BINARY_LESS_THAN, add(token_itr), node);  // swapped lhs, rhs
+    }else{
+      return node;
+    }
+  }
+}
 ASTNode* add(std::vector<Token>::const_iterator& token_itr){
   ASTNode* node = mul(token_itr);
   for(;;){
@@ -184,9 +236,9 @@ ASTNode* unary(std::vector<Token>::const_iterator& token_itr){
   }
 }
 ASTNode* term(std::vector<Token>::const_iterator& token_itr){
-  // ( add )
+  // ( equality )
   if(consume(TokenType::BEGIN_PAREN, token_itr)){
-    ASTNode* node = add(token_itr);
+    ASTNode* node = equality(token_itr);
     if(!consume(TokenType::END_PAREN, token_itr)){
       error("閉じカッコ ) がない: %s", token_itr -> input);
     }
@@ -232,6 +284,22 @@ void gen(ASTNode const* node){
     std::cout << "  mul a0, a0, a1\n";
   }else if(node->type == ASTNodeType::BINARY_DIV){
     std::cout << "  div a0, a0, a1\n";
+  }else if(node->type == ASTNodeType::BINARY_LESS_THAN){
+    std::cout << "  slt a0, a0, a1\n";
+  }else if(node->type == ASTNodeType::BINARY_LESS_THAN_OR_EQUAL){
+    std::cout <<
+      "  sub a2, a0, a1\n"
+      "  seqz a2, a2\n"
+      "  slt a0, a0, a1\n"
+      "  or  a0, a0, a2\n";
+  }else if(node->type == ASTNodeType::BINARY_EQUAL){
+    std::cout <<
+      "  sub  a0, a0, a1\n"
+      "  seqz a0, a0\n";
+  }else if(node->type == ASTNodeType::BINARY_NOT_EQUAL){
+    std::cout <<
+      "  sub  a0, a0, a1\n"
+      "  snez a0, a0\n";
   }else{
     error("不明なノード種別");
   }
@@ -254,7 +322,7 @@ int main(int argc, char** argv){
   auto const tokens = tokenize(argv[1]);
 
   auto token_itr = tokens.cbegin();
-  ASTNode const* const astRoot = add(token_itr);
+  ASTNode const* const astRoot = equality(token_itr);
 
   std::cout <<
     ".global main\n"
