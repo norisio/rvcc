@@ -25,6 +25,7 @@ enum class TokenType{
   IDENTIFIER,
   SEMICOLON,
   ASSIGN,
+  RETURN,
   EOS
 };
 struct Token{
@@ -49,7 +50,8 @@ enum class ASTNodeType{
   BINARY_NOT_EQUAL,
   BINARY_ASSIGN,
   NUMBER,
-  IDENTIFIER
+  IDENTIFIER,
+  RETURN
 };
 struct ASTNode{
   ASTNodeType type;

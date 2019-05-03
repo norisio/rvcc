@@ -4,6 +4,14 @@
 #include <cstring>
 #include <iostream>
 
+bool is_alnum(char c){
+  return false
+    || ('a' <= c && c <= 'z')
+    || ('A' <= c && c <= 'Z')
+    || ('0' <= c && c <= '9')
+    || (c == '_');
+}
+
 /* 字句解析 */
 std::vector<Token> tokenize(char const* p){
   std::vector<Token> tokens;
@@ -86,6 +94,12 @@ std::vector<Token> tokenize(char const* p){
       continue;
     }
 
+    if(std::strncmp(p, "return", 6) == 0 && !is_alnum(*(p+6))){
+      tokens.emplace_back(TokenType::RETURN, p);
+      p += 6;
+      continue;
+    }
+
     if('a' <= *p && *p <= 'z'){
       tokens.emplace_back(TokenType::IDENTIFIER, p);
       p++;
@@ -157,7 +171,16 @@ std::vector<ASTNode*> program(std::vector<Token>::const_iterator& token_itr){
   return ret;
 }
 ASTNode* stmt(std::vector<Token>::const_iterator& token_itr){
-  ASTNode* node = assignment(token_itr);
+  ASTNode* const node = [&](){
+    if(consume(TokenType::RETURN, token_itr)){
+      ASTNode* return_node = new ASTNode();
+      return_node->type = ASTNodeType::RETURN;
+      return_node->lhs = assignment(token_itr);
+      return return_node;
+    }else{
+      return assignment(token_itr);
+    }
+  }();
 
   if(!consume(TokenType::SEMICOLON, token_itr)){
     error("セミコロン ; が無い");

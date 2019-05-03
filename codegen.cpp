@@ -60,6 +60,16 @@ void gen(ASTNode const* node){
     return;
   }
 
+  if(node->type == ASTNodeType::RETURN){
+    gen(node->lhs);
+    std::cout <<
+      "  mv  sp, s0\n"
+      "  ld  s0, (sp)\n"
+      "  addi  sp, sp, " << sizeof_variable << "\n"
+      "  ret\n" << std::endl;
+    return;
+  }
+
   gen(node->lhs);
   gen(node->rhs);
 

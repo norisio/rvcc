@@ -2,12 +2,14 @@
 
 COMPILER=rvcc
 
+NATIVE_CFLAGS=-g
+
 try() {
   expected="$1"
   input="$2"
 
   ./$COMPILER "$input" > tmp.s
-  riscv64-linux-gnu-gcc-8 tmp.s -o tmp
+  riscv64-linux-gnu-gcc-8 ${NATIVE_CFLAGS} tmp.s -o tmp
   ./run.sh tmp
   actual="$?"
 
@@ -18,6 +20,9 @@ try() {
     exit 1
   fi
 }
+
+# return statement
+try 3 'return 3; return 4;'
 
 # local variables
 try 10 'a = 2; c = 3; z = 4; a+c+z+1;'
