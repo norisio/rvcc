@@ -19,6 +19,9 @@ try() {
   fi
 }
 
+# local variables
+try 10 'a = 2; c = 3; z = 4; a+c+z+1;'
+
 # multiple stmts
 try 6 '5;6;'
 

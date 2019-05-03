@@ -80,7 +80,6 @@ std::vector<Token> tokenize(char const* p){
       p++;
       continue;
     }
-    /*
     if(*p == '='){
       tokens.emplace_back(TokenType::ASSIGN, p);
       p++;
@@ -92,7 +91,6 @@ std::vector<Token> tokenize(char const* p){
       p++;
       continue;
     }
-    */
 
 
     if(std::isdigit(*p)){;
@@ -129,6 +127,13 @@ ASTNode* newNodeNumber(
   node->value = value;
   return node;
 }
+ASTNode* newNodeIdentifier(
+    char name){
+  ASTNode* node = new ASTNode();
+  node->type = ASTNodeType::IDENTIFIER;
+  node->id_name = name;
+  return node;
+}
 bool consume(TokenType type, std::vector<Token>::const_iterator& token_itr){
   if(token_itr -> type != type){
     return false;
@@ -163,13 +168,11 @@ ASTNode* stmt(std::vector<Token>::const_iterator& token_itr){
 ASTNode* assignment(std::vector<Token>::const_iterator& token_itr){
   ASTNode* node = equality(token_itr);
   for(;;){
-    /*
     if(consume(TokenType::ASSIGN, token_itr)){
       node = newNodeBinary(ASTNodeType::BINARY_ASSIGN, node, assignment(token_itr));
     }else{
-    */
       return node;
-    //}
+    }
   }
 }
 ASTNode* equality(std::vector<Token>::const_iterator& token_itr){
@@ -236,11 +239,12 @@ ASTNode* unary(std::vector<Token>::const_iterator& token_itr){
   }
 }
 ASTNode* term(std::vector<Token>::const_iterator& token_itr){
-  // ( equality )
+  // ( assignment )
   if(consume(TokenType::BEGIN_PAREN, token_itr)){
-    ASTNode* node = equality(token_itr);
+    ASTNode* node = assignment(token_itr);
     if(!consume(TokenType::END_PAREN, token_itr)){
       error("閉じカッコ ) がない: %s", token_itr -> input);
+      exit(1);
     }
     return node;
   }
@@ -250,6 +254,13 @@ ASTNode* term(std::vector<Token>::const_iterator& token_itr){
     ++token_itr;
     return node;
   }
+  // identifier
+  if(token_itr -> type == TokenType::IDENTIFIER){
+    ASTNode* node = newNodeIdentifier(*token_itr->input);
+    ++token_itr;
+    return node;
+  }
+
 
   error("数値か開きカッコ ( を期待したが、数値ではない: %s", token_itr -> input);
   return nullptr;

@@ -3,6 +3,8 @@
 
 #include <vector>
 
+size_t static constexpr sizeof_variable = 8;
+
 void error(char const* fmt, ...);
 
 /* 字句解析 */
@@ -20,9 +22,9 @@ enum class TokenType{
   LESS_THAN,
   NOT_EQUAL,
   EQUAL,
-  // IDENTIFIER,
+  IDENTIFIER,
   SEMICOLON,
-  // ASSIGN,
+  ASSIGN,
   EOS
 };
 struct Token{
@@ -45,14 +47,16 @@ enum class ASTNodeType{
   BINARY_LESS_THAN_OR_EQUAL,
   BINARY_EQUAL,
   BINARY_NOT_EQUAL,
-  // BINARY_ASSIGN,
-  NUMBER
+  BINARY_ASSIGN,
+  NUMBER,
+  IDENTIFIER
 };
 struct ASTNode{
   ASTNodeType type;
   ASTNode const* lhs;
   ASTNode const* rhs;
-  int value;
+  int value;    // type==NUMBER
+  char id_name; // type==IDENTIFIER
 };
 std::vector<ASTNode*> program(std::vector<Token>::const_iterator& token_itr);
 

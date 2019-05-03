@@ -36,13 +36,27 @@ int main(int argc, char** argv){
     "main:\n"
     << std::endl;
 
+  // prologue
+  std::cout <<
+    "  addi  sp, sp, -" << sizeof_variable << "\n"
+    "  sd    s0, (sp)\n"
+    "  mv    s0, sp\n"
+    "  addi  sp, sp, -" << ('z'-'a'+1)*sizeof_variable << "\n";
+
   for(ASTNode* const& stmtNode: code){
     gen(stmtNode);
+    std::cout <<
+      // pop the last result
+      "  ld a0, 0(sp)\n"
+      "  addi  sp, sp, " << sizeof_variable << "\n";
   }
 
 
+  // epilogue
   std::cout <<
-    "  lw a0, 0(sp)\n"
+    "  mv  sp, s0\n"
+    "  ld  s0, (sp)\n"
+    "  addi  sp, sp, " << sizeof_variable << "\n"
     "  ret\n" << std::endl;
 
   return 0;
