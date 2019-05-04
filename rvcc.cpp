@@ -36,12 +36,13 @@ int main(int argc, char** argv){
     "main:\n"
     << std::endl;
 
+  size_t static constexpr stackframe_size = 100 * sizeof_variable;
   // prologue
   std::cout <<
     "  addi  sp, sp, -" << sizeof_variable << "\n"
     "  sd    s0, (sp)\n"
     "  mv    s0, sp\n"
-    "  addi  sp, sp, -" << ('z'-'a'+1)*sizeof_variable << "\n";
+    "  addi  sp, sp, -" << stackframe_size << "\n";
 
   for(ASTNode* const& stmtNode: code){
     gen(stmtNode);

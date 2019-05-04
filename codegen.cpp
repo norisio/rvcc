@@ -9,9 +9,9 @@ void gen_lvalue(ASTNode const* node){
     exit(1);
   }
 
-  char const id_name = node->id_name;
+  std::string const id_name = node->id_name;
 
-  size_t const offset = ('z' - id_name + 1) * sizeof_variable;
+  ptrdiff_t const offset = variables_info.offset_of(id_name);
   std::cout <<
     // calculate local variable's address
     "  mv   a0, s0\n"

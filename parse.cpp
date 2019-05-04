@@ -94,15 +94,26 @@ std::vector<Token> tokenize(char const* p){
       continue;
     }
 
-    if(std::strncmp(p, "return", 6) == 0 && !is_alnum(*(p+6))){
+    /* keyword */
+    if(std::strncmp(p, "return", 6) == 0 && !is_alnum(*(p+6)) && *(p+6) != '_'){
       tokens.emplace_back(TokenType::RETURN, p);
       p += 6;
       continue;
     }
 
-    if('a' <= *p && *p <= 'z'){
-      tokens.emplace_back(TokenType::IDENTIFIER, p);
-      p++;
+    /* identifier */
+    if(std::isalpha(*p) || *p == '_'){
+      auto p_lookahead = p+1;
+      while(is_alnum(*p_lookahead) || *p_lookahead == '_'){
+        ++p_lookahead;
+      }
+      Token id_token;
+      id_token.type = TokenType::IDENTIFIER;
+      id_token.input = p;
+      ptrdiff_t const name_length = p_lookahead-p;
+      id_token.id_name = std::string(p, name_length);
+      tokens.push_back(id_token);
+      p = p_lookahead;
       continue;
     }
 
@@ -124,6 +135,13 @@ std::vector<Token> tokenize(char const* p){
 
 
 /* 構文解析 */
+void VariablesInfo::put(std::string const& id_name){
+  if(this->offsets.find(id_name) == this->offsets.end()){
+    this->num_of_found_variables += 1;
+    this->offsets[id_name] = num_of_found_variables * sizeof_variable;
+  }
+}
+VariablesInfo variables_info;
 ASTNode* newNodeBinary(
     ASTNodeType type,
     ASTNode const* lhs,
@@ -142,7 +160,7 @@ ASTNode* newNodeNumber(
   return node;
 }
 ASTNode* newNodeIdentifier(
-    char name){
+    std::string const& name){
   ASTNode* node = new ASTNode();
   node->type = ASTNodeType::IDENTIFIER;
   node->id_name = name;
@@ -279,7 +297,8 @@ ASTNode* term(std::vector<Token>::const_iterator& token_itr){
   }
   // identifier
   if(token_itr -> type == TokenType::IDENTIFIER){
-    ASTNode* node = newNodeIdentifier(*token_itr->input);
+    ASTNode* node = newNodeIdentifier(token_itr->id_name);
+    variables_info.put(node->id_name);
     ++token_itr;
     return node;
   }

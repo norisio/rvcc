@@ -21,8 +21,12 @@ try() {
   fi
 }
 
+# multichars variables
+try 3 'var_A = 3; var_B = 11; return var_B/var_A;'
+
 # return statement
 try 3 'return 3; return 4;'
+try 10 'a = 2; c = 3; z = 4; return a+c+z+1;'
 
 # local variables
 try 10 'a = 2; c = 3; z = 4; a+c+z+1;'

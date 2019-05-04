@@ -2,6 +2,8 @@
 #define RVCC_HPP
 
 #include <vector>
+#include <string>
+#include <unordered_map>
 
 size_t static constexpr sizeof_variable = 8;
 
@@ -30,10 +32,15 @@ enum class TokenType{
 };
 struct Token{
   TokenType type;
-  int value;
+  int value;           // type==NUMBER
+  std::string id_name; // type==IDENTIFIER
   char const* input;
+  Token() = default;
+  Token(Token const& rhs) = default;
+  Token& operator=(Token const& rhs) = default;
   Token(TokenType type, char const* input): type(type), input(input){}
   Token(TokenType type, int value, char const* input): type(type), value(value), input(input){}
+  ~Token(){}
 };
 std::vector<Token> tokenize(char const* p);
 
@@ -58,9 +65,20 @@ struct ASTNode{
   ASTNode const* lhs;
   ASTNode const* rhs;
   int value;    // type==NUMBER
-  char id_name; // type==IDENTIFIER
+  std::string id_name; // type==IDENTIFIER
 };
 std::vector<ASTNode*> program(std::vector<Token>::const_iterator& token_itr);
+
+class VariablesInfo{
+  size_t num_of_found_variables;
+  std::unordered_map<std::string, ptrdiff_t> offsets;
+public:
+  VariablesInfo():num_of_found_variables(0ul){}
+  void put(std::string const& id_name);
+  ptrdiff_t offset_of(std::string const& id_name){return offsets[id_name];}
+};
+extern VariablesInfo variables_info;
+
 
 /* コード生成 */
 void gen(ASTNode const* node);
