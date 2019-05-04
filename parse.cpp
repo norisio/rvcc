@@ -12,6 +12,13 @@ bool is_alnum(char c){
     || (c == '_');
 }
 
+bool match_keyword(char const* kw, char const* p){
+  auto const length = std::strlen(kw);
+  return
+    std::strncmp(p, kw, length) == 0
+    && !is_alnum(*(p+length));
+}
+
 /* 字句解析 */
 std::vector<Token> tokenize(char const* p){
   std::vector<Token> tokens;
@@ -95,7 +102,7 @@ std::vector<Token> tokenize(char const* p){
     }
 
     /* keyword */
-    if(std::strncmp(p, "return", 6) == 0 && !is_alnum(*(p+6)) && *(p+6) != '_'){
+    if(match_keyword("return", p)){
       tokens.emplace_back(TokenType::RETURN, p);
       p += 6;
       continue;
@@ -104,7 +111,7 @@ std::vector<Token> tokenize(char const* p){
     /* identifier */
     if(std::isalpha(*p) || *p == '_'){
       auto p_lookahead = p+1;
-      while(is_alnum(*p_lookahead) || *p_lookahead == '_'){
+      while(is_alnum(*p_lookahead)){
         ++p_lookahead;
       }
       Token id_token;
