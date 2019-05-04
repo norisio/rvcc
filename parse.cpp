@@ -1,5 +1,6 @@
 #include "rvcc.hpp"
 
+#include <algorithm>
 #include <cctype>
 #include <cstring>
 #include <iostream>
@@ -102,11 +103,24 @@ std::vector<Token> tokenize(char const* p){
     }
 
     /* keyword */
-    if(match_keyword("return", p)){
-      tokens.emplace_back(TokenType::RETURN, p);
-      p += 6;
+    std::unordered_map<std::string, TokenType> const static
+      keyword_to_tokentype({
+        {"return", TokenType::RETURN},
+        {"if",     TokenType::IF}
+        });
+    auto const check_keyword = [&](std::string const& kw)->bool{
+      if(match_keyword(kw.c_str(), p)){
+        tokens.emplace_back(keyword_to_tokentype.at(kw), p);
+        p += kw.size();
+        return true;
+      }
+      return false;
+    };
+    if(std::any_of(
+          keyword_to_tokentype.begin(),
+          keyword_to_tokentype.end(),
+          [&](auto const& kvpair){return check_keyword(kvpair.first);}))
       continue;
-    }
 
     /* identifier */
     if(std::isalpha(*p) || *p == '_'){
@@ -196,16 +210,28 @@ std::vector<ASTNode*> program(std::vector<Token>::const_iterator& token_itr){
   return ret;
 }
 ASTNode* stmt(std::vector<Token>::const_iterator& token_itr){
-  ASTNode* const node = [&](){
-    if(consume(TokenType::RETURN, token_itr)){
-      ASTNode* return_node = new ASTNode();
-      return_node->type = ASTNodeType::RETURN;
-      return_node->lhs = assignment(token_itr);
-      return return_node;
-    }else{
-      return assignment(token_itr);
+  ASTNode* node;
+  if(consume(TokenType::RETURN, token_itr)){
+    node = new ASTNode();
+    node->type = ASTNodeType::RETURN;
+    node->lhs = assignment(token_itr);
+  }else if(consume(TokenType::IF, token_itr)){
+    node = new ASTNode();
+    node->type = ASTNodeType::IF;
+    if(!consume(TokenType::BEGIN_PAREN, token_itr)){
+      error("開き括弧 ( が必要");
+      exit(1);
     }
-  }();
+    node->condition = equality(token_itr);
+    if(!consume(TokenType::END_PAREN, token_itr)){
+      error("閉じ括弧 ) が必要");
+      exit(1);
+    }
+    node->body = stmt(token_itr);
+    return node;
+  }else{
+    node = assignment(token_itr);
+  }
 
   if(!consume(TokenType::SEMICOLON, token_itr)){
     error("セミコロン ; が無い");

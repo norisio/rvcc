@@ -1,0 +1,36 @@
+
+program := stmt program
+         | none
+
+stmt := "return" assignment ";"
+      | "if" "(" equality ")" stmt
+      | assignment ";"
+
+assignment := equality
+            | equality "=" assignment
+
+equality := relational
+          | equality "==" relational
+          | equality "!=" relational
+
+relational := add
+            | relational "<=" add
+            | relational ">=" add
+            | relational "<"  add
+            | relational ">"  add
+
+add := mul
+     | add "+" mul
+     | add "-" mul
+
+mul := unary
+     | mul "*" unary
+     | mul "/" unary
+
+unary := "+" term
+       | "-" term
+       | term
+
+term := "(" assignment ")"
+      | number
+      | identifier

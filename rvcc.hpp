@@ -28,6 +28,7 @@ enum class TokenType{
   SEMICOLON,
   ASSIGN,
   RETURN,
+  IF,
   EOS
 };
 struct Token{
@@ -58,12 +59,15 @@ enum class ASTNodeType{
   BINARY_ASSIGN,
   NUMBER,
   IDENTIFIER,
+  IF,
   RETURN
 };
 struct ASTNode{
   ASTNodeType type;
   ASTNode const* lhs;
   ASTNode const* rhs;
+  ASTNode const* condition;
+  ASTNode const* body;
   int value;    // type==NUMBER
   std::string id_name; // type==IDENTIFIER
 };

@@ -70,6 +70,26 @@ void gen(ASTNode const* node){
     return;
   }
 
+  if(node->type == ASTNodeType::IF){
+    size_t static new_if_stmt_sequence = 0;
+    auto const if_stmt_sequence = new_if_stmt_sequence;
+    new_if_stmt_sequence++;
+    std::string const label = ".IF_STMT_" + std::to_string(if_stmt_sequence) + "_ELSE";
+
+    gen(node->condition);
+    std::cout <<
+      // pop the evaluated condition
+      "  ld  a0, (sp)\n"
+      "  addi  sp, sp, " << sizeof_variable << "\n"
+      "  beqz  a0, " << label << "\n";
+    gen(node->body);
+    // write label
+    std::cout <<
+      label << ":\n";
+    return;
+  }
+
+
   gen(node->lhs);
   gen(node->rhs);
 

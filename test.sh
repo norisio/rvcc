@@ -21,6 +21,13 @@ try() {
   fi
 }
 
+# if
+try 2 '
+  a = 0;
+  if(10 / 3 == 3) a = 2;
+  if(4 * 10 < 30 + 9) a = 4;
+  return a;'
+
 # multichars variables
 try 3 'var_A = 3; var_B = 11; return var_B/var_A;'
 
