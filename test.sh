@@ -21,6 +21,12 @@ try() {
   fi
 }
 
+# for
+try 55 '
+  value = 0;
+  for(i=0; i<10; i=i+1) value = value + (i+1);
+  return value;'
+
 # if
 try 2 '
   a = 0;

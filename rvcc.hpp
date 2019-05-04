@@ -29,6 +29,7 @@ enum class TokenType{
   ASSIGN,
   RETURN,
   IF,
+  FOR,
   EOS
 };
 struct Token{
@@ -60,13 +61,16 @@ enum class ASTNodeType{
   NUMBER,
   IDENTIFIER,
   IF,
+  FOR,
   RETURN
 };
 struct ASTNode{
   ASTNodeType type;
   ASTNode const* lhs;
   ASTNode const* rhs;
+  ASTNode const* initialization;
   ASTNode const* condition;
+  ASTNode const* afterthought;
   ASTNode const* body;
   int value;    // type==NUMBER
   std::string id_name; // type==IDENTIFIER

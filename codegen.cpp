@@ -84,8 +84,31 @@ void gen(ASTNode const* node){
       "  beqz  a0, " << label << "\n";
     gen(node->body);
     // write label
+    std::cout << label << ":\n";
+    return;
+  }
+
+  if(node->type == ASTNodeType::FOR){
+    size_t static new_for_stmt_sequence = 0;
+    auto const for_stmt_sequence = new_for_stmt_sequence;
+    new_for_stmt_sequence++;
+    std::string const loop_label = ".FOR_STMT_" + std::to_string(for_stmt_sequence) + "_LOOP";
+    std::string const break_label = ".FOR_STMT_" + std::to_string(for_stmt_sequence) + "_BREAK";
+
+    gen(node->initialization);
+    std::cout << loop_label << ":\n";
+    gen(node->condition);
     std::cout <<
-      label << ":\n";
+      // pop the evaluated condition
+      "  ld  a0, (sp)\n"
+      "  addi  sp, sp, " << sizeof_variable << "\n"
+      "  beqz  a0, " << break_label << "\n";
+    gen(node->body);
+    gen(node->afterthought);
+    std::cout <<
+      "  j   " << loop_label << "\n"
+      << break_label << ":\n";
+
     return;
   }
 

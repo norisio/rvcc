@@ -2,12 +2,13 @@
 program := stmt program
          | none
 
-stmt := "return" assignment ";"
-      | "if" "(" equality ")" stmt
-      | assignment ";"
+stmt := "return" expression ";"
+      | "if" "(" expression ")" stmt
+      | "for" "(" expression ";" expression ";" expression ")" stmt
+      | expression ";"
 
-assignment := equality
-            | equality "=" assignment
+expression := equality
+            | equality "=" expression
 
 equality := relational
           | equality "==" relational
@@ -31,6 +32,6 @@ unary := "+" term
        | "-" term
        | term
 
-term := "(" assignment ")"
+term := "(" expression ")"
       | number
       | identifier

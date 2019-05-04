@@ -106,7 +106,8 @@ std::vector<Token> tokenize(char const* p){
     std::unordered_map<std::string, TokenType> const static
       keyword_to_tokentype({
         {"return", TokenType::RETURN},
-        {"if",     TokenType::IF}
+        {"if",     TokenType::IF},
+        {"for",    TokenType::FOR}
         });
     auto const check_keyword = [&](std::string const& kw)->bool{
       if(match_keyword(kw.c_str(), p)){
@@ -195,7 +196,7 @@ bool consume(TokenType type, std::vector<Token>::const_iterator& token_itr){
   return true;
 }
 ASTNode* stmt(std::vector<Token>::const_iterator& token_itr);
-ASTNode* assignment(std::vector<Token>::const_iterator& token_itr);
+ASTNode* expression(std::vector<Token>::const_iterator& token_itr);
 ASTNode* equality(std::vector<Token>::const_iterator& token_itr);
 ASTNode* relational(std::vector<Token>::const_iterator& token_itr);
 ASTNode* add(std::vector<Token>::const_iterator& token_itr);
@@ -209,41 +210,62 @@ std::vector<ASTNode*> program(std::vector<Token>::const_iterator& token_itr){
   }
   return ret;
 }
+void require_begin_paren(std::vector<Token>::const_iterator& token_itr){
+  if(!consume(TokenType::BEGIN_PAREN, token_itr)){
+    error("開き括弧 ( が必要");
+    exit(1);
+  }
+}
+void require_end_paren(std::vector<Token>::const_iterator& token_itr){
+  if(!consume(TokenType::END_PAREN, token_itr)){
+    error("閉じ括弧 ) が必要");
+    exit(1);
+  }
+}
+void require_semicolon(std::vector<Token>::const_iterator& token_itr){
+  if(!consume(TokenType::SEMICOLON, token_itr)){
+    error("セミコロン ; が無い");
+    exit(1);
+  }
+}
 ASTNode* stmt(std::vector<Token>::const_iterator& token_itr){
   ASTNode* node;
   if(consume(TokenType::RETURN, token_itr)){
     node = new ASTNode();
     node->type = ASTNodeType::RETURN;
-    node->lhs = assignment(token_itr);
+    node->lhs = expression(token_itr);
   }else if(consume(TokenType::IF, token_itr)){
     node = new ASTNode();
     node->type = ASTNodeType::IF;
-    if(!consume(TokenType::BEGIN_PAREN, token_itr)){
-      error("開き括弧 ( が必要");
-      exit(1);
-    }
-    node->condition = equality(token_itr);
-    if(!consume(TokenType::END_PAREN, token_itr)){
-      error("閉じ括弧 ) が必要");
-      exit(1);
-    }
+    require_begin_paren(token_itr);
+    node->condition = expression(token_itr);
+    require_end_paren(token_itr);
+    node->body = stmt(token_itr);
+    return node;
+  }else if(consume(TokenType::FOR, token_itr)){
+    node = new ASTNode();
+    node->type = ASTNodeType::FOR;
+    require_begin_paren(token_itr);
+    node->initialization = expression(token_itr);
+    require_semicolon(token_itr);
+    node->condition = expression(token_itr);
+    require_semicolon(token_itr);
+    node->afterthought = expression(token_itr);
+    require_end_paren(token_itr);
     node->body = stmt(token_itr);
     return node;
   }else{
-    node = assignment(token_itr);
+    node = expression(token_itr);
   }
 
-  if(!consume(TokenType::SEMICOLON, token_itr)){
-    error("セミコロン ; が無い");
-    exit(1);
-  }
+  require_semicolon(token_itr);
   return node;
 }
-ASTNode* assignment(std::vector<Token>::const_iterator& token_itr){
+ASTNode* expression(std::vector<Token>::const_iterator& token_itr){
   ASTNode* node = equality(token_itr);
   for(;;){
     if(consume(TokenType::ASSIGN, token_itr)){
-      node = newNodeBinary(ASTNodeType::BINARY_ASSIGN, node, assignment(token_itr));
+      node = newNodeBinary(ASTNodeType::BINARY_ASSIGN, node, expression(token_itr));
     }else{
       return node;
     }
@@ -313,9 +335,9 @@ ASTNode* unary(std::vector<Token>::const_iterator& token_itr){
   }
 }
 ASTNode* term(std::vector<Token>::const_iterator& token_itr){
-  // ( assignment )
+  // ( expression )
   if(consume(TokenType::BEGIN_PAREN, token_itr)){
-    ASTNode* node = assignment(token_itr);
+    ASTNode* node = expression(token_itr);
     if(!consume(TokenType::END_PAREN, token_itr)){
       error("閉じカッコ ) がない: %s", token_itr -> input);
       exit(1);
