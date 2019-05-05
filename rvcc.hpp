@@ -28,6 +28,7 @@ enum class TokenType{
   EQUAL,
   IDENTIFIER,
   SEMICOLON,
+  COMMA,
   ASSIGN,
   RETURN,
   IF,
@@ -78,7 +79,7 @@ struct ASTNode{
   ASTNode const* condition;
   ASTNode const* afterthought;
   ASTNode const* body;
-  std::vector<ASTNode const*> inner_stmts;
+  std::vector<ASTNode const*> inner_nodes;
   int value;    // type==NUMBER
   std::string id_name; // type==IDENTIFIER
 };

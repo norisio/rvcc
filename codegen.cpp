@@ -1,6 +1,8 @@
 #include "rvcc.hpp"
 
 #include <iostream>
+#include <cmath>
+#include <array>
 
 
 void gen_lvalue(ASTNode const* node){
@@ -135,7 +137,7 @@ void gen(ASTNode const* node){
   }
 
   if(node->type == ASTNodeType::BLOCK){
-    for(ASTNode const* const stmt_node: node->inner_stmts){
+    for(ASTNode const* const stmt_node: node->inner_nodes){
       gen(stmt_node);
       std::cout <<
         // discard the stmt's result
@@ -144,11 +146,26 @@ void gen(ASTNode const* node){
     return;
   }
 
+  std::array<std::string, 8> const static
+    argument_registers{ "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7" };
   if(node->type == ASTNodeType::FUNCTION_CALL){
     ASTNode const* const callee = node -> lhs;
     if(callee->type == ASTNodeType::IDENTIFIER){
+      size_t const num_of_args = std::min(argument_registers.size(), node->inner_nodes.size());
+      for(size_t i=0; i<num_of_args; ++i){
+        // evaluate arguments
+        gen(node->inner_nodes.at(i));
+      }
+      for(size_t i=0; i<num_of_args; ++i){
+        // load arguments
+        ptrdiff_t const offset = sizeof_variable * (num_of_args-i-1);
+        std::cout <<
+          "  ld   " << argument_registers.at(i) << ", " << offset << "(sp)\n";
+      }
       std::cout <<
-        // save ra
+        // pop values for arguments from stack
+        "  addi  sp, sp, " <<  sizeof_variable * num_of_args << "\n"
+        // save return address
         "  addi  sp, sp, -" << sizeof_variable << "\n"
         "  sd    ra, (sp)\n"
         "  call  ra, " << callee->id_name << "\n"
