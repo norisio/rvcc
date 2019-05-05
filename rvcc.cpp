@@ -31,6 +31,8 @@ int main(int argc, char** argv){
   std::vector<ASTNode*> code = program(token_itr);
 
   std::cout <<
+    ".text\n"
+    ".align 2\n"
     ".global main\n"
     "\n"
     "main:\n"

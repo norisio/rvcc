@@ -5,7 +5,7 @@
 #include <string>
 #include <unordered_map>
 
-size_t static constexpr sizeof_variable = 8;
+size_t static constexpr sizeof_variable = 16;
 
 void error(char const* fmt, ...);
 
