@@ -117,11 +117,14 @@ std::vector<Token> tokenize(char const* p){
       }
       return false;
     };
-    if(std::any_of(
-          keyword_to_tokentype.begin(),
-          keyword_to_tokentype.end(),
-          [&](auto const& kvpair){return check_keyword(kvpair.first);}))
-      continue;
+    if([&]()->bool{
+      for(auto const& kvpair: keyword_to_tokentype){
+        if(check_keyword(kvpair.first))return true;
+      }
+      return false;
+    }())
+    continue;
+
 
     /* identifier */
     if(std::isalpha(*p) || *p == '_'){
