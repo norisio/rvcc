@@ -78,6 +78,7 @@ try 3 'return 3; return 4;'
 try 10 'a = 2; c = 3; z = 4; return a+c+z+1;'
 
 # local variables
+try 1 'a = b = 1; return a;'
 try 10 'a = 2; c = 3; z = 4; a+c+z+1;'
 
 # multiple stmts
