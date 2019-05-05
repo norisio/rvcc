@@ -6,7 +6,12 @@ stmt := "return" expression ";"
       | "if" "(" expression ")" stmt
       | "for" "(" expression ";" expression ";" expression ")" stmt
       | "while" "(" expression ")" stmt
+      | "{" block_items "}"
       | expression ";"
+
+block_items := none
+             | stmt
+             | stmt block_items
 
 expression := equality
             | equality "=" expression

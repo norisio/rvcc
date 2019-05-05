@@ -20,6 +20,29 @@ bool match_keyword(char const* kw, char const* p){
     && !is_alnum(*(p+length));
 }
 
+std::unordered_map<char, TokenType> const static
+  char_to_tokentype({
+      {'+', TokenType::PLUS},
+      {'-', TokenType::MINUS},
+      {'*', TokenType::ASTERISK},
+      {'/', TokenType::SLASH},
+      {'(', TokenType::BEGIN_PAREN},
+      {')', TokenType::END_PAREN},
+      {'{', TokenType::BEGIN_BRACE},
+      {'}', TokenType::END_BRACE},
+      {'<', TokenType::LESS_THAN},
+      {'>', TokenType::GREATER_THAN},
+      {';', TokenType::SEMICOLON},
+      {'=', TokenType::ASSIGN}
+    });
+std::unordered_map<std::string, TokenType> const static
+  keyword_to_tokentype({
+    {"return", TokenType::RETURN},
+    {"if",     TokenType::IF},
+    {"for",    TokenType::FOR},
+    {"while",  TokenType::WHILE}
+    });
+
 /* 字句解析 */
 std::vector<Token> tokenize(char const* p){
   std::vector<Token> tokens;
@@ -51,65 +74,22 @@ std::vector<Token> tokenize(char const* p){
       continue;
     }
 
-    if(*p == '+'){
-      tokens.emplace_back(TokenType::PLUS, p);
-      p++;
-      continue;
-    }
-    if(*p == '-'){
-      tokens.emplace_back(TokenType::MINUS, p);
-      p++;
-      continue;
-    }
-    if(*p == '*'){
-      tokens.emplace_back(TokenType::ASTERISK, p);
-      p++;
-      continue;
-    }
-    if(*p == '/'){
-      tokens.emplace_back(TokenType::SLASH, p);
-      p++;
-      continue;
-    }
-    if(*p == '('){
-      tokens.emplace_back(TokenType::BEGIN_PAREN, p);
-      p++;
-      continue;
-    }
-    if(*p == ')'){
-      tokens.emplace_back(TokenType::END_PAREN, p);
-      p++;
-      continue;
-    }
-    if(*p == '<'){
-      tokens.emplace_back(TokenType::LESS_THAN, p);
-      p++;
-      continue;
-    }
-    if(*p == '>'){
-      tokens.emplace_back(TokenType::GREATER_THAN, p);
-      p++;
-      continue;
-    }
-    if(*p == ';'){
-      tokens.emplace_back(TokenType::SEMICOLON, p);
-      p++;
-      continue;
-    }
-    if(*p == '='){
-      tokens.emplace_back(TokenType::ASSIGN, p);
-      p++;
-      continue;
-    }
+    auto const check_char = [&](char ch)->bool{
+      if(*p == ch){
+        tokens.emplace_back(char_to_tokentype.at(ch), p);
+        p ++;
+        return true;
+      }
+      return false;
+    };
+    if([&]()->bool{
+      for(auto const& kvpair: char_to_tokentype){
+        if(check_char(kvpair.first))return true;
+      }
+      return false;
+    }()){ continue; }
 
     /* keyword */
-    std::unordered_map<std::string, TokenType> const static
-      keyword_to_tokentype({
-        {"return", TokenType::RETURN},
-        {"if",     TokenType::IF},
-        {"for",    TokenType::FOR},
-        {"while",  TokenType::WHILE}
-        });
     auto const check_keyword = [&](std::string const& kw)->bool{
       if(match_keyword(kw.c_str(), p)){
         tokens.emplace_back(keyword_to_tokentype.at(kw), p);
@@ -123,8 +103,7 @@ std::vector<Token> tokenize(char const* p){
         if(check_keyword(kvpair.first))return true;
       }
       return false;
-    }())
-    continue;
+    }()){ continue; }
 
 
     /* identifier */
@@ -200,6 +179,7 @@ bool consume(TokenType type, std::vector<Token>::const_iterator& token_itr){
   return true;
 }
 ASTNode* stmt(std::vector<Token>::const_iterator& token_itr);
+std::vector<ASTNode const*> block_items(std::vector<Token>::const_iterator& token_itr);
 ASTNode* expression(std::vector<Token>::const_iterator& token_itr);
 ASTNode* equality(std::vector<Token>::const_iterator& token_itr);
 ASTNode* relational(std::vector<Token>::const_iterator& token_itr);
@@ -214,68 +194,72 @@ std::vector<ASTNode*> program(std::vector<Token>::const_iterator& token_itr){
   }
   return ret;
 }
-void require_begin_paren(std::vector<Token>::const_iterator& token_itr){
-  if(!consume(TokenType::BEGIN_PAREN, token_itr)){
-    error("開き括弧 ( が必要");
-    exit(1);
-  }
-}
-void require_end_paren(std::vector<Token>::const_iterator& token_itr){
-  if(!consume(TokenType::END_PAREN, token_itr)){
-    error("閉じ括弧 ) が必要");
-    exit(1);
-  }
-}
-void require_semicolon(std::vector<Token>::const_iterator& token_itr){
-  if(!consume(TokenType::SEMICOLON, token_itr)){
-    error("セミコロン ; が無い");
+void require_token(TokenType type, std::vector<Token>::const_iterator& token_itr){
+  if(!consume(type, token_itr)){
+    std::string required_token_string;
+    for(auto const& kvpair: char_to_tokentype){
+      if(kvpair.second == type){
+        required_token_string = kvpair.first;
+      }
+    }
+    error("%s が必要", required_token_string.c_str());
     exit(1);
   }
 }
 ASTNode* stmt(std::vector<Token>::const_iterator& token_itr){
-  ASTNode* node;
+  ASTNode* node = new ASTNode();
   if(consume(TokenType::RETURN, token_itr)){
     // return expression;
-    node = new ASTNode();
     node->type = ASTNodeType::RETURN;
     node->lhs = expression(token_itr);
+    require_token(TokenType::SEMICOLON, token_itr);
+    return node;
   }else if(consume(TokenType::IF, token_itr)){
     // if ( expression ) stmt
-    node = new ASTNode();
     node->type = ASTNodeType::IF;
-    require_begin_paren(token_itr);
+    require_token(TokenType::BEGIN_PAREN, token_itr);
     node->condition = expression(token_itr);
-    require_end_paren(token_itr);
+    require_token(TokenType::END_PAREN, token_itr);
     node->body = stmt(token_itr);
     return node;
   }else if(consume(TokenType::FOR, token_itr)){
     // for ( expr; expr; expr ) stmt
-    node = new ASTNode();
     node->type = ASTNodeType::FOR;
-    require_begin_paren(token_itr);
+    require_token(TokenType::BEGIN_PAREN, token_itr);
     node->initialization = expression(token_itr);
-    require_semicolon(token_itr);
+    require_token(TokenType::SEMICOLON, token_itr);
     node->condition = expression(token_itr);
-    require_semicolon(token_itr);
+    require_token(TokenType::SEMICOLON, token_itr);
     node->afterthought = expression(token_itr);
-    require_end_paren(token_itr);
+    require_token(TokenType::END_PAREN, token_itr);
     node->body = stmt(token_itr);
     return node;
   }else if(consume(TokenType::WHILE, token_itr)){
     // while ( expression ) stmt
-    node = new ASTNode();
     node->type = ASTNodeType::WHILE;
-    require_begin_paren(token_itr);
+    require_token(TokenType::BEGIN_PAREN, token_itr);
     node->condition = expression(token_itr);
-    require_end_paren(token_itr);
+    require_token(TokenType::END_PAREN, token_itr);
     node->body = stmt(token_itr);
+    return node;
+  }else if(consume(TokenType::BEGIN_BRACE, token_itr)){
+    // { block_items }
+    node->type = ASTNodeType::BLOCK;
+    node->inner_stmts = block_items(token_itr);
+    require_token(TokenType::END_BRACE, token_itr);
     return node;
   }else{
     node = expression(token_itr);
+    require_token(TokenType::SEMICOLON, token_itr);
+    return node;
   }
-
-  require_semicolon(token_itr);
-  return node;
+}
+std::vector<ASTNode const*> block_items(std::vector<Token>::const_iterator& token_itr){
+  std::vector<ASTNode const*> stmts;
+  while(token_itr->type != TokenType::END_BRACE){
+    stmts.push_back(stmt(token_itr));
+  }
+  return stmts;
 }
 ASTNode* expression(std::vector<Token>::const_iterator& token_itr){
   ASTNode* node = equality(token_itr);

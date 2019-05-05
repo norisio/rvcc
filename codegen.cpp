@@ -134,11 +134,21 @@ void gen(ASTNode const* node){
     return;
   }
 
+  if(node->type == ASTNodeType::BLOCK){
+    for(ASTNode const* const stmt_node: node->inner_stmts){
+      gen(stmt_node);
+      std::cout <<
+        // discard the stmt's result
+        "  addi  sp, sp, " << sizeof_variable << "\n";
+    }
+    return;
+  }
 
+
+  /* 二項演算子 */
   gen(node->lhs);
   gen(node->rhs);
 
-  /* 二項演算子 */
   // pop 2 operands
   std::cout <<
     "  ld  a1, 0(sp)\n"

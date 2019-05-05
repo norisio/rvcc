@@ -21,6 +21,17 @@ try() {
   fi
 }
 
+# block
+try 4 '
+  {}
+  {
+    {a = 0; b = 0;}
+    if(1){ a = 1; b = 2; }
+    if(0){ a = 3; b = 4; }
+    while(1){{return a*a*b*b;}}
+  }
+  '
+
 # while
 try 10 "
   a = 0;

@@ -18,6 +18,8 @@ enum class TokenType{
   NUMBER,
   BEGIN_PAREN,
   END_PAREN,
+  BEGIN_BRACE,
+  END_BRACE,
   GREATER_THAN_OR_EQUAL,
   LESS_THAN_OR_EQUAL,
   GREATER_THAN,
@@ -64,6 +66,7 @@ enum class ASTNodeType{
   IF,
   FOR,
   WHILE,
+  BLOCK,
   RETURN
 };
 struct ASTNode{
@@ -74,6 +77,7 @@ struct ASTNode{
   ASTNode const* condition;
   ASTNode const* afterthought;
   ASTNode const* body;
+  std::vector<ASTNode const*> inner_stmts;
   int value;    // type==NUMBER
   std::string id_name; // type==IDENTIFIER
 };
