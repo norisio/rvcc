@@ -112,6 +112,28 @@ void gen(ASTNode const* node){
     return;
   }
 
+  if(node->type == ASTNodeType::WHILE){
+    size_t static new_while_stmt_sequence = 0;
+    auto const while_stmt_sequence = new_while_stmt_sequence;
+    new_while_stmt_sequence++;
+    std::string const loop_label = ".WHILE_STMT_" + std::to_string(while_stmt_sequence) + "_LOOP";
+    std::string const break_label = ".WHILE_STMT_" + std::to_string(while_stmt_sequence) + "_BREAK";
+
+    std::cout << loop_label << ":\n";
+    gen(node->condition);
+    std::cout <<
+      // pop the evaluated condition
+      "  ld  a0, (sp)\n"
+      "  addi  sp, sp, " << sizeof_variable << "\n"
+      "  beqz  a0, " << break_label << "\n";
+    gen(node->body);
+    std::cout <<
+      "  j   " << loop_label << "\n"
+      << break_label << ":\n";
+
+    return;
+  }
+
 
   gen(node->lhs);
   gen(node->rhs);

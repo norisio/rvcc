@@ -107,7 +107,8 @@ std::vector<Token> tokenize(char const* p){
       keyword_to_tokentype({
         {"return", TokenType::RETURN},
         {"if",     TokenType::IF},
-        {"for",    TokenType::FOR}
+        {"for",    TokenType::FOR},
+        {"while",  TokenType::WHILE}
         });
     auto const check_keyword = [&](std::string const& kw)->bool{
       if(match_keyword(kw.c_str(), p)){
@@ -234,10 +235,12 @@ void require_semicolon(std::vector<Token>::const_iterator& token_itr){
 ASTNode* stmt(std::vector<Token>::const_iterator& token_itr){
   ASTNode* node;
   if(consume(TokenType::RETURN, token_itr)){
+    // return expression;
     node = new ASTNode();
     node->type = ASTNodeType::RETURN;
     node->lhs = expression(token_itr);
   }else if(consume(TokenType::IF, token_itr)){
+    // if ( expression ) stmt
     node = new ASTNode();
     node->type = ASTNodeType::IF;
     require_begin_paren(token_itr);
@@ -246,6 +249,7 @@ ASTNode* stmt(std::vector<Token>::const_iterator& token_itr){
     node->body = stmt(token_itr);
     return node;
   }else if(consume(TokenType::FOR, token_itr)){
+    // for ( expr; expr; expr ) stmt
     node = new ASTNode();
     node->type = ASTNodeType::FOR;
     require_begin_paren(token_itr);
@@ -254,6 +258,15 @@ ASTNode* stmt(std::vector<Token>::const_iterator& token_itr){
     node->condition = expression(token_itr);
     require_semicolon(token_itr);
     node->afterthought = expression(token_itr);
+    require_end_paren(token_itr);
+    node->body = stmt(token_itr);
+    return node;
+  }else if(consume(TokenType::WHILE, token_itr)){
+    // while ( expression ) stmt
+    node = new ASTNode();
+    node->type = ASTNodeType::WHILE;
+    require_begin_paren(token_itr);
+    node->condition = expression(token_itr);
     require_end_paren(token_itr);
     node->body = stmt(token_itr);
     return node;

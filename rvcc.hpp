@@ -30,6 +30,7 @@ enum class TokenType{
   RETURN,
   IF,
   FOR,
+  WHILE,
   EOS
 };
 struct Token{
@@ -62,6 +63,7 @@ enum class ASTNodeType{
   IDENTIFIER,
   IF,
   FOR,
+  WHILE,
   RETURN
 };
 struct ASTNode{

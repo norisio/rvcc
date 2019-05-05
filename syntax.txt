@@ -5,6 +5,7 @@ program := stmt program
 stmt := "return" expression ";"
       | "if" "(" expression ")" stmt
       | "for" "(" expression ";" expression ";" expression ")" stmt
+      | "while" "(" expression ")" stmt
       | expression ";"
 
 expression := equality

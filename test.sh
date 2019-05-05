@@ -21,6 +21,12 @@ try() {
   fi
 }
 
+# while
+try 10 "
+  a = 0;
+  while(a < 10) a = a + 1;
+  return a;"
+
 # for
 try 55 '
   value = 0;
