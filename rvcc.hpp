@@ -69,6 +69,7 @@ enum class ASTNodeType{
   WHILE,
   BLOCK,
   FUNCTION_CALL,
+  FUNCTION_DEFINITION,
   RETURN
 };
 struct ASTNode{
@@ -79,6 +80,7 @@ struct ASTNode{
   ASTNode const* condition;
   ASTNode const* afterthought;
   ASTNode const* body;
+  std::vector<ASTNode const*> call_list;
   std::vector<ASTNode const*> inner_nodes;
   int value;    // type==NUMBER
   std::string id_name; // type==IDENTIFIER
@@ -86,12 +88,13 @@ struct ASTNode{
 std::vector<ASTNode*> program(std::vector<Token>::const_iterator& token_itr);
 
 class VariablesInfo{
-  size_t num_of_found_variables;
-  std::unordered_map<std::string, ptrdiff_t> offsets;
 public:
-  VariablesInfo():num_of_found_variables(0ul){}
-  void put(std::string const& id_name);
-  ptrdiff_t offset_of(std::string const& id_name){return offsets[id_name];}
+  std::vector<std::unordered_map<std::string, ptrdiff_t>> offsets;
+  VariablesInfo(){}
+  void put(size_t function_id, std::string const& id_name);
+  ptrdiff_t offset_of(size_t function_id, std::string const& id_name){return offsets.at(function_id).at(id_name);}
+  void function_exists(size_t function_id);
+  size_t num_of_variables(size_t function_id){return offsets.at(function_id).size();}
 };
 extern VariablesInfo variables_info;
 

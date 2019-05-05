@@ -4,6 +4,10 @@
 #include <cmath>
 #include <array>
 
+std::array<std::string, 8> const static
+  argument_registers{ "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7" };
+
+size_t static generating_funcdef_function_id = 0;
 
 void gen_lvalue(ASTNode const* node){
   if(node->type != ASTNodeType::IDENTIFIER){
@@ -13,7 +17,7 @@ void gen_lvalue(ASTNode const* node){
 
   std::string const id_name = node->id_name;
 
-  ptrdiff_t const offset = variables_info.offset_of(id_name);
+  ptrdiff_t const offset = variables_info.offset_of(generating_funcdef_function_id, id_name);
   std::cout <<
     // calculate local variable's address
     "  mv   a0, s0\n"
@@ -25,11 +29,76 @@ void gen_lvalue(ASTNode const* node){
 }
 
 void gen(ASTNode const* node){
+  if(node->type == ASTNodeType::FUNCTION_DEFINITION){
+    // function label
+    auto const name = node->id_name;
+    std::cout <<
+      "# BEGIN of " << name << "\n"
+      ".text\n"
+      ".align 2\n"
+      ".global " << name << "\n"
+      "\n"
+      << name << ":\n" << std::endl;
+
+    for(auto&& e: variables_info.offsets.at(generating_funcdef_function_id)){
+      std::cout << "  # var " << e.first << "\t -> offset " << e.second << std::endl;
+    }
+
+    size_t const stackframe_size =
+      variables_info.num_of_variables(generating_funcdef_function_id)
+      * sizeof_variable;
+    // prologue
+    std::cout <<
+      "# prologue\n"
+      // preserve base pointer in stack
+      "  addi  sp, sp, -" << sizeof_variable << "\n"
+      "  sd    s0, (sp)\n"
+      // new base pointer
+      "  mv    s0, sp\n"
+      // get stack frame
+      "  addi  sp, sp, -" << stackframe_size << "\n";
+
+    // copy parameters from arguments(in registers)
+    size_t const num_of_parameters = node->call_list.size();
+    for(size_t i=0; i<num_of_parameters; ++i){
+      ASTNode const* const param = node->call_list.at(i);
+      ptrdiff_t const offset = variables_info.offset_of(generating_funcdef_function_id, param->id_name);
+      std::cout <<
+        "  # copy " << param->id_name << "\n"
+        "  sd   " << argument_registers.at(i) << ", -" << offset << "(s0)\n";
+    }
+
+    std::cout <<
+      "\n# body\n";
+    for(ASTNode const* const stmt: node->inner_nodes){
+      gen(stmt);
+      /*
+      std::cout <<
+        // pop the last result
+        "  ld a0, 0(sp)\n"
+        "  addi  sp, sp, " << sizeof_variable << "\n";
+        */
+    }
+
+
+    // epilogue
+    std::cout <<
+      "# epilogue\n"
+      "  mv  sp, s0\n"
+      "  ld  s0, (sp)\n"
+      "  addi  sp, sp, " << sizeof_variable << "\n"
+      "  ret\n"
+      "# END of " << name << "\n\n" << std::endl;
+
+    generating_funcdef_function_id++;
+    return;
+  }
+
   if(node->type == ASTNodeType::NUMBER){
     // push immediate
     std::cout <<
-      "  addi sp, sp, -" << sizeof_variable << "\n"
       "  li   a0, " << node->value << "\n"
+      "  addi sp, sp, -" << sizeof_variable << "\n"
       "  sd   a0, 0(sp)\n";
     return;
   }
@@ -139,22 +208,26 @@ void gen(ASTNode const* node){
   if(node->type == ASTNodeType::BLOCK){
     for(ASTNode const* const stmt_node: node->inner_nodes){
       gen(stmt_node);
-      std::cout <<
-        // discard the stmt's result
-        "  addi  sp, sp, " << sizeof_variable << "\n";
+      if(true
+          && stmt_node->type != ASTNodeType::BLOCK
+          && stmt_node->type != ASTNodeType::IF
+          && stmt_node->type != ASTNodeType::FOR
+          && stmt_node->type != ASTNodeType::WHILE
+          ){
+        std::cout <<
+          "  addi  sp, sp, " << sizeof_variable << " # discard the stmt's result \n";
+      }
     }
     return;
   }
 
-  std::array<std::string, 8> const static
-    argument_registers{ "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7" };
   if(node->type == ASTNodeType::FUNCTION_CALL){
     ASTNode const* const callee = node -> lhs;
     if(callee->type == ASTNodeType::IDENTIFIER){
-      size_t const num_of_args = std::min(argument_registers.size(), node->inner_nodes.size());
+      size_t const num_of_args = std::min(argument_registers.size(), node->call_list.size());
       for(size_t i=0; i<num_of_args; ++i){
         // evaluate arguments
-        gen(node->inner_nodes.at(i));
+        gen(node->call_list.at(i));
       }
       for(size_t i=0; i<num_of_args; ++i){
         // load arguments
@@ -170,7 +243,9 @@ void gen(ASTNode const* node){
         "  sd    ra, (sp)\n"
         "  call  ra, " << callee->id_name << "\n"
         // restore ra
-        "  ld    ra, (sp)\n";
+        "  ld    ra, (sp)\n"
+        // save returned a0 at the top of the stack
+        "  sd    a0, (sp)\n";
       return;
     }else{
       error("呼び出せないtermに()がついている");

@@ -6,6 +6,8 @@
 #include <cstring>
 #include <iostream>
 
+size_t static parsing_funcdef_function_id = 0;
+
 bool is_alnum(char c){
   return false
     || ('a' <= c && c <= 'z')
@@ -120,10 +122,16 @@ std::vector<Token> tokenize(char const* p){
 
 
 /* 構文解析 */
-void VariablesInfo::put(std::string const& id_name){
-  if(this->offsets.find(id_name) == this->offsets.end()){
-    this->num_of_found_variables += 1;
-    this->offsets[id_name] = num_of_found_variables * sizeof_variable;
+void VariablesInfo::function_exists(size_t function_id){
+  if(offsets.size() <= function_id){
+    offsets.resize(function_id+1);
+  }
+}
+void VariablesInfo::put(size_t function_id, std::string const& id_name){
+  auto& offsetmap = this->offsets.at(function_id);
+  auto const num_of_existing_variables = offsetmap.size();
+  if(offsetmap.find(id_name) == offsetmap.end()){
+    offsetmap[id_name] = (num_of_existing_variables+1) * sizeof_variable;
   }
 }
 VariablesInfo variables_info;
@@ -158,6 +166,8 @@ bool consume(TokenType type, std::vector<Token>::const_iterator& token_itr){
   ++token_itr;
   return true;
 }
+ASTNode* funcdef(std::vector<Token>::const_iterator& token_itr);
+std::vector<ASTNode const*> parameter_list(std::vector<Token>::const_iterator& token_itr);
 ASTNode* stmt(std::vector<Token>::const_iterator& token_itr);
 std::vector<ASTNode const*> block_items(std::vector<Token>::const_iterator& token_itr);
 ASTNode* expression(std::vector<Token>::const_iterator& token_itr);
@@ -169,15 +179,19 @@ ASTNode* term(std::vector<Token>::const_iterator& token_itr);
 ASTNode* funccall(std::vector<Token>::const_iterator& token_itr);
 std::vector<ASTNode const*> argument_list(std::vector<Token>::const_iterator& token_itr);
 ASTNode* unary(std::vector<Token>::const_iterator& token_itr);
+ASTNode* identifier(std::vector<Token>::const_iterator& token_itr);
 std::vector<ASTNode*> program(std::vector<Token>::const_iterator& token_itr){
   std::vector<ASTNode*> ret;
   while(token_itr->type != TokenType::EOS){
-    ret.emplace_back(stmt(token_itr));
+    ret.emplace_back(funcdef(token_itr));
   }
   return ret;
 }
-void require_token(TokenType type, std::vector<Token>::const_iterator& token_itr){
-  if(!consume(type, token_itr)){
+Token require_token(TokenType type, std::vector<Token>::const_iterator& token_itr){
+  Token const token_copy = *token_itr;
+  if(consume(type, token_itr)){
+    return token_copy;
+  }else{
     if(type == TokenType::IDENTIFIER){
       error("identifier が必要");
       exit(1);
@@ -192,6 +206,38 @@ void require_token(TokenType type, std::vector<Token>::const_iterator& token_itr
     error("TokenType::%d が必要", static_cast<int>(type));
     exit(1);
   }
+  return {};
+}
+ASTNode* funcdef(std::vector<Token>::const_iterator& token_itr){
+  variables_info.function_exists(parsing_funcdef_function_id);
+
+  Token const id_token = require_token(TokenType::IDENTIFIER, token_itr);
+  require_token(TokenType::BEGIN_PAREN, token_itr);
+
+  ASTNode* node = new ASTNode();
+  node->type = ASTNodeType::FUNCTION_DEFINITION;
+  node->id_name = id_token.id_name;
+  if(consume(TokenType::END_PAREN, token_itr)){
+    // identifier ()
+    node->call_list = {};
+  }else{
+    // identifier ( parameter_list )
+    node->call_list = parameter_list(token_itr);
+    require_token(TokenType::END_PAREN, token_itr);
+  }
+  require_token(TokenType::BEGIN_BRACE, token_itr);
+  node->inner_nodes = block_items(token_itr);
+  require_token(TokenType::END_BRACE, token_itr);
+
+  parsing_funcdef_function_id++;
+  return node;
+}
+std::vector<ASTNode const*> parameter_list(std::vector<Token>::const_iterator& token_itr){
+  std::vector<ASTNode const*> params;
+  do{
+    params.push_back(identifier(token_itr));
+  }while (consume(TokenType::COMMA, token_itr));
+  return params;
 }
 ASTNode* stmt(std::vector<Token>::const_iterator& token_itr){
   ASTNode* node = new ASTNode();
@@ -330,10 +376,10 @@ ASTNode* funccall(std::vector<Token>::const_iterator& token_itr){
     callnode->lhs = node;
     if(consume(TokenType::END_PAREN, token_itr)){
       // term ()
-      callnode->inner_nodes = {};
+      callnode->call_list = {};
     }else{
       // term ( argument_list )
-      callnode->inner_nodes = argument_list(token_itr);
+      callnode->call_list = argument_list(token_itr);
       require_token(TokenType::END_PAREN, token_itr);
     }
     return callnode;
@@ -365,13 +411,16 @@ ASTNode* term(std::vector<Token>::const_iterator& token_itr){
   }
   // identifier
   if(token_itr -> type == TokenType::IDENTIFIER){
-    ASTNode* node = newNodeIdentifier(token_itr->id_name);
-    variables_info.put(node->id_name);
-    ++token_itr;
-    return node;
+    return identifier(token_itr);
   }
 
 
   error("数値か開きカッコ ( を期待したが、数値ではない: %s", token_itr -> input);
   return nullptr;
+}
+ASTNode* identifier(std::vector<Token>::const_iterator& token_itr){
+  ASTNode* node = newNodeIdentifier(token_itr->id_name);
+  variables_info.put(parsing_funcdef_function_id, node->id_name);
+  ++token_itr;
+  return node;
 }

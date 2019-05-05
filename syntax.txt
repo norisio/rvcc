@@ -1,6 +1,11 @@
 
-program := stmt program
+program := funcdef program
          | none
+
+funcdef := identifier "("                ")" "{" block_items "}"
+         | identifier "(" parameter_list ")" "{" block_items "}"
+
+parameter_list := identifier "," parameter_list
 
 stmt := "return" expression ";"
       | "if" "(" expression ")" stmt

@@ -30,37 +30,9 @@ int main(int argc, char** argv){
 
   std::vector<ASTNode*> code = program(token_itr);
 
-  std::cout <<
-    ".text\n"
-    ".align 2\n"
-    ".global main\n"
-    "\n"
-    "main:\n"
-    << std::endl;
-
-  size_t static constexpr stackframe_size = 100 * sizeof_variable;
-  // prologue
-  std::cout <<
-    "  addi  sp, sp, -" << sizeof_variable << "\n"
-    "  sd    s0, (sp)\n"
-    "  mv    s0, sp\n"
-    "  addi  sp, sp, -" << stackframe_size << "\n";
-
-  for(ASTNode* const& stmtNode: code){
-    gen(stmtNode);
-    std::cout <<
-      // pop the last result
-      "  ld a0, 0(sp)\n"
-      "  addi  sp, sp, " << sizeof_variable << "\n";
+  for(auto const funcdef_node: code){
+    gen(funcdef_node);
   }
-
-
-  // epilogue
-  std::cout <<
-    "  mv  sp, s0\n"
-    "  ld  s0, (sp)\n"
-    "  addi  sp, sp, " << sizeof_variable << "\n"
-    "  ret\n" << std::endl;
 
   return 0;
 }
