@@ -144,6 +144,23 @@ void gen(ASTNode const* node){
     return;
   }
 
+  if(node->type == ASTNodeType::FUNCTION_CALL){
+    ASTNode const* const callee = node -> lhs;
+    if(callee->type == ASTNodeType::IDENTIFIER){
+      std::cout <<
+        // save ra
+        "  addi  sp, sp, -" << sizeof_variable << "\n"
+        "  sd    ra, (sp)\n"
+        "  call  ra, " << callee->id_name << "\n"
+        // restore ra
+        "  ld    ra, (sp)\n";
+      return;
+    }else{
+      error("呼び出せないtermに()がついている");
+      exit(1);
+    }
+  }
+
 
   /* 二項演算子 */
   gen(node->lhs);
