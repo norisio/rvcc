@@ -2,24 +2,43 @@
 
 COMPILER=rvcc
 
+NATIVE_COMPILER=riscv64-linux-gnu-gcc-8
 NATIVE_CFLAGS=-g
 
 try() {
   expected="$1"
   input="$2"
 
+  echo "$input"
+
   ./$COMPILER "$input" > tmp.s
-  riscv64-linux-gnu-gcc-8 ${NATIVE_CFLAGS} tmp.s -o tmp
+  ${NATIVE_COMPILER} ${NATIVE_CFLAGS} tmp.s -o tmp
   ./run.sh tmp
   actual="$?"
 
   if [ "$actual" = "$expected" ]; then
-    echo "$input => $actual"
+    echo "  => $actual"
   else
     echo "$expected expected, but got $actual"
     exit 1
   fi
 }
+
+# function call w/o args
+somefunc_str='
+#include <stdio.h>
+void some_func(){
+  puts("Hi!\n");
+}'
+try_str='some_func(); return 0;'
+echo "$try_str"
+echo "$somefunc_str" | $NATIVE_COMPILER -xc - ${NATIVE_CFLAGS} -c -o some_func.o \
+  && ./$COMPILER "$try_str" > tmp.s \
+  && ${NATIVE_COMPILER} ${NATIVE_CFLAGS} tmp.s some_func.o -o tmp \
+  && output=$(./run.sh tmp)
+echo "  =>" "$output"
+[[ "$output" = "Hi!" ]] && echo OK
+
 
 # block
 try 4 '

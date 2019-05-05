@@ -34,9 +34,12 @@ mul := unary
      | mul "*" unary
      | mul "/" unary
 
-unary := "+" term
-       | "-" term
-       | term
+unary := "+" funccall
+       | "-" funccall
+       | funccall
+
+funccall := term
+          | term "(" ")"
 
 term := "(" expression ")"
       | number

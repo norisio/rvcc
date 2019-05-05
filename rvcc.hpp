@@ -67,6 +67,7 @@ enum class ASTNodeType{
   FOR,
   WHILE,
   BLOCK,
+  FUNCTION_CALL,
   RETURN
 };
 struct ASTNode{
