@@ -40,6 +40,10 @@ unary := "+" funccall
 
 funccall := term
           | term "(" ")"
+          | term "(" argument_list ")"
+
+argument_list := expression
+               | expression "," argument_list
 
 term := "(" expression ")"
       | number

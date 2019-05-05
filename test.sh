@@ -24,6 +24,23 @@ try() {
   fi
 }
 
+# function call w/ args
+somefunc_str='
+#include <stdio.h>
+#include <stdint.h>
+void some_func(int64_t a, int64_t b, int64_t c){
+  int64_t ans = a + b*2 + c*3;
+  printf("%ld\n", ans);
+}'
+try_str='some_func(1, 10, 100); return 0;'
+echo "$try_str"
+echo "$somefunc_str" | $NATIVE_COMPILER -xc - ${NATIVE_CFLAGS} -c -o some_func.o \
+  && ./$COMPILER "$try_str" > tmp.s \
+  && ${NATIVE_COMPILER} ${NATIVE_CFLAGS} tmp.s some_func.o -o tmp \
+  && output=$(./run.sh tmp)
+echo "  =>" "$output"
+[[ "$output" = "321" ]] && echo OK
+
 # function call w/o args
 somefunc_str='
 #include <stdio.h>

@@ -33,6 +33,7 @@ std::unordered_map<char, TokenType> const static
       {'<', TokenType::LESS_THAN},
       {'>', TokenType::GREATER_THAN},
       {';', TokenType::SEMICOLON},
+      {',', TokenType::COMMA},
       {'=', TokenType::ASSIGN}
     });
 std::unordered_map<std::string, TokenType> const static
@@ -187,6 +188,7 @@ ASTNode* add(std::vector<Token>::const_iterator& token_itr);
 ASTNode* mul(std::vector<Token>::const_iterator& token_itr);
 ASTNode* term(std::vector<Token>::const_iterator& token_itr);
 ASTNode* funccall(std::vector<Token>::const_iterator& token_itr);
+std::vector<ASTNode const*> argument_list(std::vector<Token>::const_iterator& token_itr);
 ASTNode* unary(std::vector<Token>::const_iterator& token_itr);
 std::vector<ASTNode*> program(std::vector<Token>::const_iterator& token_itr){
   std::vector<ASTNode*> ret;
@@ -246,7 +248,7 @@ ASTNode* stmt(std::vector<Token>::const_iterator& token_itr){
   }else if(consume(TokenType::BEGIN_BRACE, token_itr)){
     // { block_items }
     node->type = ASTNodeType::BLOCK;
-    node->inner_stmts = block_items(token_itr);
+    node->inner_nodes = block_items(token_itr);
     require_token(TokenType::END_BRACE, token_itr);
     return node;
   }else{
@@ -338,14 +340,28 @@ ASTNode* unary(std::vector<Token>::const_iterator& token_itr){
 ASTNode* funccall(std::vector<Token>::const_iterator& token_itr){
   ASTNode* node = term(token_itr);
   if(consume(TokenType::BEGIN_PAREN, token_itr)){
-    // term ()
+    // term ( argument_list|none )
     ASTNode* callnode = new ASTNode();
     callnode->type = ASTNodeType::FUNCTION_CALL;
     callnode->lhs = node;
-    require_token(TokenType::END_PAREN, token_itr);
+    if(consume(TokenType::END_PAREN, token_itr)){
+      // term ()
+      callnode->inner_nodes = {};
+    }else{
+      // term ( argument_list )
+      callnode->inner_nodes = argument_list(token_itr);
+      require_token(TokenType::END_PAREN, token_itr);
+    }
     return callnode;
   }
   return node;
+}
+std::vector<ASTNode const*> argument_list(std::vector<Token>::const_iterator& token_itr){
+  std::vector<ASTNode const*> arguments;
+  do{
+    arguments.push_back(expression(token_itr));
+  }while (consume(TokenType::COMMA, token_itr));
+  return arguments;
 }
 ASTNode* term(std::vector<Token>::const_iterator& token_itr){
   // ( expression )
