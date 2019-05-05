@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <utility>
 #include <cstring>
 #include <iostream>
 
@@ -20,21 +21,25 @@ bool match_keyword(char const* kw, char const* p){
     && !is_alnum(*(p+length));
 }
 
-std::unordered_map<char, TokenType> const static
-  char_to_tokentype({
-      {'+', TokenType::PLUS},
-      {'-', TokenType::MINUS},
-      {'*', TokenType::ASTERISK},
-      {'/', TokenType::SLASH},
-      {'(', TokenType::BEGIN_PAREN},
-      {')', TokenType::END_PAREN},
-      {'{', TokenType::BEGIN_BRACE},
-      {'}', TokenType::END_BRACE},
-      {'<', TokenType::LESS_THAN},
-      {'>', TokenType::GREATER_THAN},
-      {';', TokenType::SEMICOLON},
-      {',', TokenType::COMMA},
-      {'=', TokenType::ASSIGN}
+std::vector<std::pair<std::string, TokenType>> const static
+  symbols_to_tokentype({
+      {">=", TokenType::GREATER_THAN_OR_EQUAL},
+      {"<=", TokenType::LESS_THAN_OR_EQUAL},
+      {"!=", TokenType::NOT_EQUAL},
+      {"==", TokenType::EQUAL},
+      {"+", TokenType::PLUS},
+      {"-", TokenType::MINUS},
+      {"*", TokenType::ASTERISK},
+      {"/", TokenType::SLASH},
+      {"(", TokenType::BEGIN_PAREN},
+      {")", TokenType::END_PAREN},
+      {"{", TokenType::BEGIN_BRACE},
+      {"}", TokenType::END_BRACE},
+      {"<", TokenType::LESS_THAN},
+      {">", TokenType::GREATER_THAN},
+      {";", TokenType::SEMICOLON},
+      {",", TokenType::COMMA},
+      {"=", TokenType::ASSIGN}
     });
 std::unordered_map<std::string, TokenType> const static
   keyword_to_tokentype({
@@ -54,54 +59,28 @@ std::vector<Token> tokenize(char const* p){
       continue;
     }
 
-    if(std::strncmp(p, ">=", 2) == 0){
-      tokens.emplace_back(TokenType::GREATER_THAN_OR_EQUAL, p);
-      p += 2;
-      continue;
-    }
-    if(std::strncmp(p, "<=", 2) == 0){
-      tokens.emplace_back(TokenType::LESS_THAN_OR_EQUAL, p);
-      p += 2;
-      continue;
-    }
-    if(std::strncmp(p, "!=", 2) == 0){
-      tokens.emplace_back(TokenType::NOT_EQUAL, p);
-      p += 2;
-      continue;
-    }
-    if(std::strncmp(p, "==", 2) == 0){
-      tokens.emplace_back(TokenType::EQUAL, p);
-      p += 2;
-      continue;
-    }
-
-    auto const check_char = [&](char ch)->bool{
-      if(*p == ch){
-        tokens.emplace_back(char_to_tokentype.at(ch), p);
-        p ++;
-        return true;
-      }
-      return false;
-    };
+    /* symbols tokens */
     if([&]()->bool{
-      for(auto const& kvpair: char_to_tokentype){
-        if(check_char(kvpair.first))return true;
+      for(auto const& kvpair: symbols_to_tokentype){
+        auto const& symbolstr = kvpair.first;
+        if(std::strncmp(p, symbolstr.c_str(), symbolstr.size()) == 0){
+          tokens.emplace_back(kvpair.second, p);
+          p += symbolstr.size();
+          return true;
+        }
       }
       return false;
     }()){ continue; }
 
     /* keyword */
-    auto const check_keyword = [&](std::string const& kw)->bool{
-      if(match_keyword(kw.c_str(), p)){
-        tokens.emplace_back(keyword_to_tokentype.at(kw), p);
-        p += kw.size();
-        return true;
-      }
-      return false;
-    };
     if([&]()->bool{
       for(auto const& kvpair: keyword_to_tokentype){
-        if(check_keyword(kvpair.first))return true;
+        auto const& kw = kvpair.first;
+        if(match_keyword(kw.c_str(), p)){
+          tokens.emplace_back(kvpair.second, p);
+          p += kw.size();
+          return true;
+        }
       }
       return false;
     }()){ continue; }
@@ -199,13 +178,18 @@ std::vector<ASTNode*> program(std::vector<Token>::const_iterator& token_itr){
 }
 void require_token(TokenType type, std::vector<Token>::const_iterator& token_itr){
   if(!consume(type, token_itr)){
-    std::string required_token_string;
-    for(auto const& kvpair: char_to_tokentype){
+    if(type == TokenType::IDENTIFIER){
+      error("identifier が必要");
+      exit(1);
+    }
+    for(auto const& kvpair: symbols_to_tokentype){
       if(kvpair.second == type){
-        required_token_string = kvpair.first;
+        auto const required_token_string = kvpair.first;
+        error("%s が必要", required_token_string.c_str());
+        exit(1);
       }
     }
-    error("%s が必要", required_token_string.c_str());
+    error("TokenType::%d が必要", static_cast<int>(type));
     exit(1);
   }
 }
