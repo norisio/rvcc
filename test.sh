@@ -75,11 +75,11 @@ echo "  =>" "$output"
 
 # function definition
 try 24 '
-prod(x, y, z){
-  return x * y * z;
+absprod(x, y, z){
+  return llabs(x * y * z);
 }
 main(){
-  return prod(2, 3, 4);
+  return absprod(2, -3, 4);
 }
 '
 
