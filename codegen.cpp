@@ -271,6 +271,8 @@ void gen(ASTNode const* node){
     std::cout << "  mul a0, a0, a1\n";
   }else if(node->type == ASTNodeType::BINARY_DIV){
     std::cout << "  div a0, a0, a1\n";
+  }else if(node->type == ASTNodeType::BINARY_MOD){
+    std::cout << "  rem a0, a0, a1\n";
   }else if(node->type == ASTNodeType::BINARY_LESS_THAN){
     std::cout << "  slt a0, a0, a1\n";
   }else if(node->type == ASTNodeType::BINARY_LESS_THAN_OR_EQUAL){

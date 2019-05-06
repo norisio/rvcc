@@ -38,6 +38,7 @@ add := mul
 mul := unary
      | mul "*" unary
      | mul "/" unary
+     | mul "%" unary
 
 unary := "+" funccall
        | "-" funccall

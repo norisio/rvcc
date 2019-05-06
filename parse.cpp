@@ -33,6 +33,7 @@ std::vector<std::pair<std::string, TokenType>> const static
       {"-", TokenType::MINUS},
       {"*", TokenType::ASTERISK},
       {"/", TokenType::SLASH},
+      {"%", TokenType::PERCENT},
       {"(", TokenType::BEGIN_PAREN},
       {")", TokenType::END_PAREN},
       {"{", TokenType::BEGIN_BRACE},
@@ -351,6 +352,8 @@ ASTNode* mul(std::vector<Token>::const_iterator& token_itr){
       node = newNodeBinary(ASTNodeType::BINARY_MUL, node, unary(token_itr));
     }else if(consume(TokenType::SLASH, token_itr)){
       node = newNodeBinary(ASTNodeType::BINARY_DIV, node, unary(token_itr));
+    }else if(consume(TokenType::PERCENT, token_itr)){
+      node = newNodeBinary(ASTNodeType::BINARY_MOD, node, unary(token_itr));
     }else{
       return node;
     }

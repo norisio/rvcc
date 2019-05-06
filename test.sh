@@ -139,11 +139,12 @@ try_in_main 10 '9+-(-3)-(+2);'
 #parentheses
 try_in_main 9 '(1+2)*3;'
 
-#multiplication, division
+#multiplication, division, remainder
 try_in_main 6 '3*2;'
 try_in_main 6 '18/3;'
 try_in_main 7 '1+3*2;'
 try_in_main 20 '1+10/2*4-1;'
+try_in_main 10 'return 43%11;'
 
 #tokenize
 try_in_main 21 '5    + 20            - 4;'
