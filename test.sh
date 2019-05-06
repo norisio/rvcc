@@ -28,6 +28,51 @@ try_in_main(){
   try "$1" "main(){ $2 }"
 }
 
+# Fizz Buzz
+somefunc_str='
+#include <stdio.h>
+#include <stdlib.h>
+void print_ld(int64_t x){
+  printf("%ld", x);
+}'
+try_str='
+fizz(){
+  putchar(70);
+  putchar(105);
+  putchar(122);
+  putchar(122);
+}
+buzz(){
+  putchar(66);
+  putchar(117);
+  putchar(122);
+  putchar(122);
+}
+judge(x){
+  f =  x % 3 == 0;
+  b =  x % 5 == 0;
+  if(f) fizz();
+  if(b) buzz();
+  if(f + b == 0) print_ld(x);
+  putchar(10);
+  return 0;
+}
+main(){
+  for(i = 1; i <= 30; i = i + 1){
+    judge(i);
+  }
+  return 0;
+}'
+echo "---- precompiled ---"
+echo "$somefunc_str"
+echo "---- /precompiled ---"
+echo "$try_str"
+echo "$somefunc_str" | $NATIVE_COMPILER -xc - ${NATIVE_CFLAGS} -c -o some_func.o \
+  && ./$COMPILER "$try_str" > tmp.s \
+  && ${NATIVE_COMPILER} ${NATIVE_CFLAGS} tmp.s some_func.o -o tmp \
+  && output=$(./run.sh tmp)
+echo "  =>" "$output"
+
 # function definition
 try 24 '
 prod(x, y, z){
